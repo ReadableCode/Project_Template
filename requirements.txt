@@ -1,0 +1,14 @@
+pygsheets
+psycopg2-binary
+numpy
+requests
+datetime
+pandas
+matplotlib
+ipykernel
+tabulate
+impyla
+openpyxl
+pydrive
+looker_sdk
+snowflake-connector-python==2.7.6
