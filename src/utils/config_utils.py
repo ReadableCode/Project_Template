@@ -20,6 +20,7 @@ gdrive_path_for_shared = os.path.join(home_dir, "GoogleDrive")
 
 data_dir = os.path.join(grandparent_dir, "data")
 trigger_dir = os.path.join(grandparent_dir, "triggers")
+query_dir = os.path.join(grandparent_dir, "queries")
 data_dir_db_mirror = os.path.join(
     great_grandparent_dir, "Labor_Planning", "data_db_mirror"
 )
