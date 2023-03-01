@@ -15,6 +15,9 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 grandparent_dir = os.path.dirname(parent_dir)
 great_grandparent_dir = os.path.dirname(grandparent_dir)
 
+gdrive_path = os.path.dirname(great_grandparent_dir)
+gdrive_path_for_shared = os.path.join(home_dir, "GoogleDrive")
+
 data_dir = os.path.join(grandparent_dir, "data")
 trigger_dir = os.path.join(grandparent_dir, "triggers")
 data_dir_db_mirror = os.path.join(
