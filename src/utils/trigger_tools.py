@@ -14,8 +14,6 @@ from utils.config_utils import (
     parent_dir,
     grandparent_dir,
     great_grandparent_dir,
-    gdrive_path,
-    gdrive_path_for_shared,
     data_dir,
     trigger_dir,
 )
