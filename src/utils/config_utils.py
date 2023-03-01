@@ -16,6 +16,7 @@ grandparent_dir = os.path.dirname(parent_dir)
 great_grandparent_dir = os.path.dirname(grandparent_dir)
 
 data_dir = os.path.join(grandparent_dir, "data")
+trigger_dir = os.path.join(grandparent_dir, "triggers")
 data_dir_db_mirror = os.path.join(
     great_grandparent_dir, "Labor_Planning", "data_db_mirror"
 )
