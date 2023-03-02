@@ -686,7 +686,7 @@ def get_book_from_file_name(file_name):  # need to remove, aliased to new one fo
 
 
 def get_df_from_sheet_id(
-    id, sheet_name, start_range, end_range, include_tailing_empty=False
+    id, sheet_name, start_range, end_range, include_tailing_empty=False, retry=True
 ):
     try:
         data_from_book = get_book_sheet_from_id_name(id, sheet_name).get_as_df(
@@ -696,12 +696,25 @@ def get_df_from_sheet_id(
         )
         return data_from_book
     except Exception as e:
-        print_logger(
-            f"Failed to get df from sheet id {id}, sheet_name: {sheet_name}, error: {e}"
-        )
-        raise Exception(
-            f"Failed to get df from sheet id {id}, sheet_name: {sheet_name}, error: {e}"
-        )
+        if retry:
+            print_logger(
+                f"Failed to get df from sheet id {id}, sheet_name: {sheet_name}, error: {e}, retrying"
+            )
+            return get_df_from_sheet_id(
+                id,
+                sheet_name,
+                start_range,
+                end_range,
+                include_tailing_empty,
+                retry=False,
+            )
+        else:
+            print_logger(
+                f"Failed to get df even after retry from sheet id {id}, sheet_name: {sheet_name}, error: {e}"
+            )
+            raise Exception(
+                f"Failed to get df even after retry from sheet id {id}, sheet_name: {sheet_name}, error: {e}"
+            )
 
 
 def get_df_from_file_name(
