@@ -260,6 +260,7 @@ dict_hardcoded_book_ids = {
     "NT Planning Reports": "1USfqTZygq_ZEcbeFHhb9Cffm-wXy8hna6jSJ0qaDm40",
     "SW Planning Reports": "1GWkGSV2UigzL1g__UcipTvnyF6KUcbp5xGDZCT68oiQ",
     "AU Planning Reports": "1SycL3PzPfwy8DjhemJA-YsLPeLsj8JPAzhtc9N0jbbs",
+    "Mock/Live Plan Inputs": "15YOVAJosH_fM3zODhgVe0DNux-3vZYZ0KQf7SZvshjE",
 }
 
 
