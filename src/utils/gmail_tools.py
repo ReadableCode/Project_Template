@@ -197,7 +197,7 @@ def get_attachment_from_search_string(
 
             internal_dt_received_with_seconds = pd.to_datetime(
                 int(float(internal_date_received) / 1000), unit="s", origin="unix"
-            ).strftime(format="%Y-%m-%d %H:%M:%S")
+            ).strftime(format="%Y.%m.%d %H.%M.%S")
             str_internal_dt_received_with_seconds = str(
                 internal_dt_received_with_seconds
             )
@@ -319,6 +319,14 @@ def get_attachment_from_search_string(
                                     + "."
                                     + original_file_extension
                                 )
+                            elif output_file_name == "highjump":
+                                filename = (
+                                    "highjump file"
+                                    + " "
+                                    + str_internal_dt_received_with_seconds
+                                    + "."
+                                    + original_file_extension
+                                )
                             attachment_id = part["parts"][0]["body"]["attachmentId"]
                             attachment = (
                                 service.users()
@@ -337,6 +345,7 @@ def get_attachment_from_search_string(
                         print("did not detect attachment type 2")
 
             path_with_file_name = os.path.join(output_path, filename)
+            print(f"path_with_file_name is {path_with_file_name}")
             with open(path_with_file_name, "wb") as f:
                 f.write(file_data)
             ls_paths_with_file_names.append(path_with_file_name)

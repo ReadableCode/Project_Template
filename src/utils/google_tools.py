@@ -123,57 +123,86 @@ def get_book_from_id(id, retry=True):
         Workbook = dict_connected_books[id]
         print_logger(f"Using cached connection to {id}")
         return Workbook
-    else:
-        try:
-            book_from_id = gc.open_by_key(id)
-            dict_connected_books[id] = book_from_id
-            print_logger(f"Opening new connection to {id}")
-            return book_from_id
-        except TransportError as e:
-            print_logger(
-                f"Error opening connection to {id}, Trying again in 5 seconds, error: {e}"
+
+    try:
+        book_from_id = gc.open_by_key(id)
+        dict_connected_books[id] = book_from_id
+        print_logger(f"Opening new connection to {id}")
+        return book_from_id
+    except TransportError as e:
+        print_logger(
+            f"Error opening connection to {id}, Trying again in 5 seconds, error: {e}"
+        )
+        if retry:
+            time.sleep(30)
+            return get_book_from_id(id, retry=False)
+        else:
+            print_logger("Failed to connect to Google Sheets even after retrying")
+            raise Exception(
+                f"Failed to connect to Google Sheets even after retrying because of TransportError {e}"
             )
-            time.sleep(5)
+    except HttpError as e:
+        if e.resp.status == 429:
+            print_logger(
+                f"Error HttpError 429, rate limited, opening connection to {id}, Trying again in 20 seconds, error: {e}"
+            )
             if retry:
+                time.sleep(20)
                 return get_book_from_id(id, retry=False)
             else:
-                print_logger("Failed to connect to Google Sheets even after retrying")
+                print_logger(
+                    f"Failed to connect to Google Sheets even after retrying because of HttpError 429: {e}"
+                )
                 raise Exception(
-                    f"Failed to connect to Google Sheets even after retrying because of TransportError {e}"
+                    f"Failed to connect to Google Sheets even after retrying because of HttpError 429: {e}"
                 )
-        except HttpError as e:
-            if e.resp.status == 429:
-                print_logger(
-                    f"Error HttpError 429, rate limited, opening connection to {id}, Trying again in 20 seconds, error: {e}"
-                )
-                time.sleep(20)
-                if retry:
-                    return get_book_from_id(id, retry=False)
-                else:
-                    print_logger(
-                        f"Failed to connect to Google Sheets even after retrying because of HttpError 429{e}"
-                    )
-                    raise Exception(
-                        f"Failed to connect to Google Sheets even after retrying because of HttpError 429{e}"
-                    )
-            if e.resp.status == 500:
-                print_logger(
-                    f"Error HttpError 500, internal server error, opening connection to {id}, Trying again in 120 seconds, error: {e}"
-                )
+        elif e.resp.status == 500:
+            print_logger(
+                f"Error HttpError 500, internal server error, opening connection to {id}, Trying again in 120 seconds, error: {e}"
+            )
+            if retry:
                 time.sleep(120)
-                if retry:
-                    return get_book_from_id(id, retry=False)
-                else:
-                    print_logger(
-                        f"Failed to connect to Google Sheets even after retrying because of HttpError 500{e}"
-                    )
-                    raise Exception(
-                        f"Failed to connect to Google Sheets even after retrying because of HttpError 500{e}"
-                    )
+                return get_book_from_id(id, retry=False)
             else:
-                raise Exception(
-                    f"Failed to connect to Google Sheets because of other HttpError {e}"
+                print_logger(
+                    f"Failed to connect to Google Sheets even after retrying because of HttpError 500: {e}"
                 )
+                raise Exception(
+                    f"Failed to connect to Google Sheets even after retrying because of HttpError 500: {e}"
+                )
+        elif e.resp.status == 503:
+            print_logger(
+                f"Error HttpError 503, internal server error, opening connection to {id}, Trying again in 120 seconds, error: {e}"
+            )
+            if retry:
+                time.sleep(120)
+                return get_book_from_id(id, retry=False)
+            else:
+                print_logger(
+                    f"Failed to connect to Google Sheets even after retrying because of HttpError 503: {e}"
+                )
+                raise Exception(
+                    f"Failed to connect to Google Sheets even after retrying because of HttpError 503: {e}"
+                )
+        elif e.resp.status == 404:
+            print_logger(
+                f"HttpError 404 opening connection to {id}, Trying again in 5 seconds, error: {e}"
+            )
+            if retry:
+                time.sleep(5)
+                return get_book_from_id(id, retry=False)
+            else:
+                print_logger(
+                    f"Failed to connect to Google Sheets even after retrying because of HttpError 404: {e}"
+                )
+                raise Exception(
+                    f"Failed to connect to Google Sheets even after retrying because of HttpError 404: {e}"
+                )
+
+        else:
+            raise Exception(
+                f"Failed to connect to Google Sheets because of other HttpError {e}"
+            )
 
 
 dict_hardcoded_book_ids = {
@@ -216,6 +245,7 @@ dict_hardcoded_book_ids = {
     "EP_DC Weekly Target Tracker": "1oeaYC8re1S8DV42YkB3jHleKYZhmsorbWW9d30xm5Pg",
     "Long term Network Plan": "1yPVsAO5KA-0IzgA2Aypt8242OvLxzEdrHVw2XMULoVo",
     "GC LT Forecast by Lane_2022-2023 v2": "16QI5vIGBju-Qd2v78Wr4RAz0x6GgvqmmdZZGh9cawCc",
+    "GC LT Forecast by Lane_2023 W10+ v2": "1IlcuLnrO96wIbpaw0ZtgR1NhBDgnjj6RuFdKfbx7t9U",
     "Peak Planning": "1JdereC3kuwsF3z5c2oaLjxqw0AWuX5rJ7PU4ojZVr18",
     "Risk_Builder_Triggers": "1EkJXfCndhDbdD_KZMj3EPuwZi6OvbF6LmAmrGLpQR00",
     "Mid Shift Attrition Tracker": "1mJ-HagGggzLsEV_ftF-o3ezOXS7iBXre6JAe5xISOr0",
