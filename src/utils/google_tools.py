@@ -205,7 +205,9 @@ def get_book_from_id(id, retry=True):
             )
 
 
-dict_hardcoded_book_ids = json.load(open("google_sheet_ids.json"))
+dict_hardcoded_book_ids = json.load(
+    open(os.path.join(file_dir, "google_sheet_ids.json"))
+)
 
 
 def get_book(bookName, retry=True):
