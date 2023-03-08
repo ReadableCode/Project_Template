@@ -17,7 +17,7 @@ from google.auth.exceptions import TransportError
 from googleapiclient.errors import HttpError
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-
+import json
 
 # append grandparent
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -205,63 +205,7 @@ def get_book_from_id(id, retry=True):
             )
 
 
-dict_hardcoded_book_ids = {
-    "DB_Attendance": "1pCmdmj556t0vC5xG_3z7rR3iX4IJQhXWHoO-4eYnQVA",
-    "DB_Attrition": "1iZFlMf9cpxNFagrY6yYaxPC8pW_v01eLyqtdcWBJZd0",
-    "DB_Budgets": "1ZENeCCo0MkSUZgGnF6NorpucmuKMJLxLM0xufB4vJSQ",
-    "DB_Mock_Live": "1hNGIoN3l8Jo0CqzYucSTjhqog6mFa8euy3PU7xNT318",
-    "DB_Risks": "1NdYvAaG_UJXiAjcn6ewOaUtXA-dJxL8BXdXrCkPudOU",
-    "DB_Sheets_Links": "1rEmncTR6gd1XIbm4yQMiYLeGcDQanOUYjxQHEAYmpG0",
-    "DB_Shifts": "1ExQxe8Fg81B48sLOTuAmZ29qiA8AV5fpToKDXlctd3w",
-    "DB_Volume_Forecast": "1KBiEdvRHTeOwAkY0ozDD0JL9woccDK_2L7gzBIiBZuY",
-    "DC Labor Planning 2.0": "1ShuHp98wlM3ycR-0sD8tNDYOsSxlyB0G7GgQaq17vE4",
-    "MRMRDW Rosters": "1IKM7Rq6D3AAiG0dSvQMj15vvOofhLWmNvMn8QOPzG3c",
-    "Non-Production Staffing 2.0": "1pBoEgjyuDrjXJYq3K1tZQgKYNVgtrl7CTNoahKrdnTY",
-    "Roster Status": "1ODOkr1sYX7vKDOVLYGgCOqOoNdDS6qynm7IfVyI4fio",
-    "Mock_Live_Update_Tasks": "1TKbvRpxgPtuG5zlJRt_O3Cn9GLEGIj0L-TRS-3IcrTE",
-    "SDI 2022": "1khpR9U2ZtnDVbKorS2IiPmSOwFYwNo_i3tsPsvS1ZpU",
-    "SDI v3": "1ho4qDBKtjtaDZUmf7-yjJMjijOlHEGYooNNFY_Q3vK4",
-    "Strategic Fulfillment Planning Dashboards_WIP": "1dmld4Ta6sld2f4tRcCFYnHB528BKqPXcb-cTG04oK24",
-    "Weeks": "1RTUZ9GSH1sP9pHMastqZoPkZEGv83P8rmPDyWkzk4lM",
-    "Aliases": "1_jaqUR1vFXFJuUMSXpm0PvQqPXQazvcRiBarn8Kj8KM",
-    "LaborPlanRunner": "1otD1P01CMH4-js1fiMlHYuYDhaKeZYTogVtdHkGKXjg",
-    "Capacity v2": "1eP9c-goGvmKrsAudWhhGrlqzQMobpqCJXeVZF_zonP8",
-    "2023 Kiwi - New Starts vs HC Requested by Planning - SCM Week": "1ZCvrkyyLtTQNjt75ZUnpvl8jA4nrMWe4_Wf6nteUowk",
-    "Needs Sheet": "1lrjw0fzhATBzWaJWaLqZ9Mw1KqSsVesu1RF0Pvk8AiI",
-    "Local Needs Sheet": "1lQUFKYLJkZxR91CEM3_Vg3tvT2guu0JJpuopIyv_cHk",
-    "Workforce Balancing Tracker": "1fRhJNtYIfuXCdX4R-glgwC9tMkkgIoUosw3qOGt5sMI",
-    "Labor_Optimization": "1v46yVUwn9kIGHWMH874EO5QA0htnJK6v_aE0CuEBUdM",
-    "Labor_Optimization_Tracker": "13wbs_AQWu9-LGi7ZwowTBBdpgIAoLo4fmc90giwmBwE",
-    "2022 Network HC Tracker": "1bAwciw650U66kjRm_BiyvjUCDwD7apUxxhbkG1N14Fc",
-    "Kiwi_Extractions": "13agmwRZsZdYMYQ7rYRjCR4t30ATb2KuZb2PyvgDqqSE",
-    "Ship Hybrid Needs Fulfillment Planning": "1PgSSiUkZIRGpjXvBeCPssTHqLWVMo1X-H-K5y8IgYLk",
-    "MPBTracker": "1YqdQvJ2QY1Ye1GPtSznb6wm49winsIZ7dZi5ex2Xtkg",
-    "VolumeSheet": "1jpDfSqyPJcpzLtyx4URkBEk8wZV-E4pJPEbWl2HvRRo",
-    "WonoloLookerExtract": "1NAMHfY2-7VlovKPR-oejH0GojZI1o58WcCaFrBgG6Vg",
-    "Bruno - Staffing Tracking": "1YkrCuAbaWVzAAjcYRQYqVkYr0XoDGmnfN0042c3mCUc",
-    "We Don't Talk About Bruno v2.0 (DO NOT USE)": "1eiMEzZu1XMfdYk-uaBBof5wmCLJPhhzt8kUmTGEeoHo",
-    "HF_DC Weekly Target Tracker": "1nQIeuVoTm6maSfhMZje-XibY2lE50Ci_UgIx134j-RE",
-    "The Creator": "1mcWynyqek8iYQEnI3SCZs6kRZZ5HJb5tUSMPBg4qE9s",
-    "EP_DC Weekly Target Tracker": "1oeaYC8re1S8DV42YkB3jHleKYZhmsorbWW9d30xm5Pg",
-    "Long term Network Plan": "1yPVsAO5KA-0IzgA2Aypt8242OvLxzEdrHVw2XMULoVo",
-    "GC LT Forecast by Lane_2022-2023 v2": "16QI5vIGBju-Qd2v78Wr4RAz0x6GgvqmmdZZGh9cawCc",
-    "GC LT Forecast by Lane_2023 W10+ v2": "1IlcuLnrO96wIbpaw0ZtgR1NhBDgnjj6RuFdKfbx7t9U",
-    "Peak Planning": "1JdereC3kuwsF3z5c2oaLjxqw0AWuX5rJ7PU4ojZVr18",
-    "Risk_Builder_Triggers": "1EkJXfCndhDbdD_KZMj3EPuwZi6OvbF6LmAmrGLpQR00",
-    "Mid Shift Attrition Tracker": "1mJ-HagGggzLsEV_ftF-o3ezOXS7iBXre6JAe5xISOr0",
-    "TestApp": "1ZEf5IkCGyHEbR8hnvMKmjAd_-4DejRPs1de4iigUpF0",
-    "Labor Orders and Fills": "14cc-V1orGSN1Y2JLqh_srrXEhUh8EkqcDvaEeGdtAkY",
-    "Sanders_File_Extraction": "1Jji3VO7sscNq8bikHaywDDtZ9ZActiJ6zJNoSN5Xb2k",
-    "NJ Planning Reports": "1ytNJcvsYaxXEtFDfjzWOdxZNKSQkigMINYFU0yrvH70",
-    "TI Planning Reports": "1c77S9vW8gAVsrTXMyJoPRknQc7bexio8oCu_Ge-JHI0",
-    "GA Planning Reports": "1w9VnxdFHE8ooUVAqRHBq6yw4fWlFjKEpWGV1JDcI9iA",
-    "AZ Planning Reports": "1Bam0qEGtrRQMiHa3NfGvEKU64041Gt5-JLJ_5ZyWPdg",
-    "TX Planning Reports": "1MlUIzIuNs7Ycw53iZFAR5Pd7nL_ZZ-5Uni_9pfRLY_4",
-    "NT Planning Reports": "1USfqTZygq_ZEcbeFHhb9Cffm-wXy8hna6jSJ0qaDm40",
-    "SW Planning Reports": "1GWkGSV2UigzL1g__UcipTvnyF6KUcbp5xGDZCT68oiQ",
-    "AU Planning Reports": "1SycL3PzPfwy8DjhemJA-YsLPeLsj8JPAzhtc9N0jbbs",
-    "Mock/Live Plan Inputs": "15YOVAJosH_fM3zODhgVe0DNux-3vZYZ0KQf7SZvshjE",
-}
+dict_hardcoded_book_ids = json.load(open("google_sheet_ids.json"))
 
 
 def get_book(bookName, retry=True):
