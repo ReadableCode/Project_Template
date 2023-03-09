@@ -767,10 +767,17 @@ def copy_formulas_range_to_range(
     )
 
 
-def convert_to_sheets_link(sheet_id):
+def get_sheet_link(sheet_id):
     if (sheet_id == "") or (sheet_id == None) or (len(sheet_id) != 44):
         return ""
-    return f'=hyperlink("https://docs.google.com/spreadsheets/d/{sheet_id}","Link")'
+    return f"https://docs.google.com/spreadsheets/d/{sheet_id}"
+
+
+def convert_to_sheets_link(sheet_id):
+    sheet_link = get_sheet_link(sheet_id)
+    if sheet_link == "":
+        return ""
+    return f'=hyperlink("{sheet_link}","Link")'
 
 
 # %%
