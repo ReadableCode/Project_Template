@@ -34,6 +34,7 @@ from utils.config_utils import (
 )
 
 from utils.display_tools import print_logger
+from utils.doc_tools import log_data_pipeline
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -321,6 +322,8 @@ def WriteToSheets(
     indexes=False,
     set_note=None,
     retries=3,
+    script_path="",
+    function_name="",
 ):
     """
     This function will write a dataframe to a google sheet, will create the sheet if it doesnt exist
@@ -388,6 +391,20 @@ def WriteToSheets(
             print_logger(
                 f"Finished writing to Google Sheet: {bookName} - {sheetName} with size {df.shape}, after {datetime.datetime.now() - start_time}"
             )
+
+            log_data_pipeline(
+                script_path=script_path,
+                function_name=function_name,
+                input_output="output",
+                resource_type="google_sheet",
+                spreadsheet_id=Workbook.id,
+                spreadsheet_name=bookName,
+                sheet_name=sheetName,
+                domo_table_name="",
+                domo_table_id="",
+                file_path="",
+            )
+
             return
         except Exception as e:
             print_logger(

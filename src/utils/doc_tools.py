@@ -11,7 +11,6 @@ import numpy as np
 # append grandparent
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.google_tools import WriteToSheets
 from utils.config_utils import (
     home_dir,
     file_dir,
@@ -98,24 +97,63 @@ def convert_to_domo_link(domo_table_id):
     return f'=hyperlink("{domo_link}","Link")'
 
 
-def get_mermaid_from_row(row):
+def strip_characters_for_mermaid(string):
+    return string.replace(" ", "_").replace("(", "_").replace(")", "_")
+
+
+def get_mermaid_from_row(row, apply_links=True):
     # Add values to the "mermaid" column based on the value of "input_output" column
+    left = ""
+    right = ""
+
     if row["input_output"] == "output":
         if row["resource_type"] == "google_sheet":
-            return f'{row["script_path"]} --> {row["spreadsheet_name"]}/{row["sheet_name"]}'
+            left = f'{row["script_path"]}'
+            left_link = get_git_link(row["script_path"])
+            right = f'{row["spreadsheet_name"]}/{row["sheet_name"]}'
+            right_link = get_sheet_link(row["spreadsheet_id"])
         elif row["resource_type"] == "domo_table":
-            return f'{row["script_path"]} --> {row["domo_table_name"]}'
+            left = f'{row["script_path"]}'
+            left_link = get_git_link(row["script_path"])
+            right = f'{row["domo_table_name"]}'
+            right_link = get_domo_link(row["domo_table_id"])
         elif row["resource_type"] == "file":
-            return f'{row["script_path"]} --> {row["file_name"]}'
+            left = f'{row["script_path"]}'
+            left_link = get_git_link(row["script_path"])
+            right = f'{row["file_name"]}'
+            right_link = ""
     elif row["input_output"] == "input":
         if row["resource_type"] == "google_sheet":
-            return f'{row["spreadsheet_name"]}/{row["sheet_name"]} --> {row["script_path"]}'
+            left = f'{row["spreadsheet_name"]}/{row["sheet_name"]}'
+            left_link = get_sheet_link(row["spreadsheet_id"])
+            right = f'{row["script_path"]}'
+            right_link = get_git_link(row["script_path"])
         elif row["resource_type"] == "domo_table":
-            return f'{row["domo_table_name"]} --> {row["script_path"]}'
+            left = f'{row["domo_table_name"]}'
+            left_link = get_domo_link(row["domo_table_id"])
+            right = f'{row["script_path"]}'
+            right_link = get_git_link(row["script_path"])
         elif row["resource_type"] == "file":
-            return f'{row["file_name"]} --> {row["script_path"]}'
+            left = f'{row["file_name"]}'
+            left_link = ""
+            right = f'{row["script_path"]}'
+            right_link = get_git_link(row["script_path"])
     else:
         return ""
+
+    # format to return: A[<a href='https://docs.google.com/spreadsheets/d/15YOVAJosH_fM3zODhgVe0DNux-3vZYZ0KQf7SZvshjE/edit#gid=764617962'>Mock/Live Plan Inputs</a>];
+
+    # replace symbols that mermaid does not like
+    left = strip_characters_for_mermaid(left)
+    right = strip_characters_for_mermaid(right)
+
+    if apply_links:
+        if left_link != "":
+            left = f"{left}[<a href='{left_link}'>{left}</a>]"
+        if right_link != "":
+            right = f"{right}[<a href='{right_link}'>{right}</a>];"
+
+    return f"{left} --> {right}"
 
 
 # example log use:
@@ -151,6 +189,9 @@ def log_data_pipeline(
             f.write(
                 "datestamp,script_path,script_name,function_name,input_output,resource_type,spreadsheet_id,spreadsheet_name,sheet_name,domo_table_name,domo_table_id,file_path,file_name,sheet_link,script_link,domo_link,mermaid\n"
             )
+
+    if script_path == "":
+        return
 
     # write row
     if file_path != np.nan:
@@ -189,11 +230,42 @@ def data_pipe_outputs():
         ]
     )
 
-    df["mermaid"] = df.apply(get_mermaid_from_row, axis=1)
+    df["mermaid"] = df.apply(
+        lambda row: get_mermaid_from_row(row, apply_links=False), axis=1
+    )
+
+    ## filter out for size constraints
+    # filter out where file path contains  - Active Roster -
+    df = df[~df["mermaid"].str.contains("-_Active_Roster_-")]
+
+    df["spreadsheet_name"].fillna("", inplace=True)
+    # filter out ^.._* files unless they are ^NJ_* on spreadsheet_name
+    df = df[
+        ~df["spreadsheet_name"].str.contains("^[A-Z]{2} ")
+        | df["spreadsheet_name"].str.startswith("NJ ")
+    ]
+
+    df["sheet_name"].fillna("", inplace=True)
+    # filter out ^.._* files unless they are ^NJ_* on sheet_name
+    df = df[
+        ~df["sheet_name"].str.contains("^[A-Z]{2} ")
+        | df["sheet_name"].str.startswith("NJ ")
+    ]
+
+    df["file_name"].fillna("", inplace=True)
+    # filter out ^.._* files unless they are ^NJ_* on file_name
+    df = df[
+        ~df["file_name"].str.contains("^[A-Z]{2}_")
+        | df["file_name"].str.startswith("NJ_")
+    ]
+
+    # sort
+    df = df.sort_values(by=["script_path", "input_output", "resource_type"])
 
     # output mermaid as a file in the data folder
     with open(
-        os.path.join(data_dir, f"{repo_name}_data_pipelines_mermaid.md"), "w"
+        os.path.join(docs_dir, f"{repo_name}_data_pipelines_mermaid.md"),
+        "w",
     ) as f:
         f.write("# Mermaid\n")
         f.write("\n")
@@ -205,15 +277,42 @@ def data_pipe_outputs():
             for row in df[df["script_name"] == script].iterrows():
                 f.write(f'  {row[1]["mermaid"]}')
                 f.write("\n")
+            f.write("\n")
 
         f.write("```\n")
 
-    # WriteToSheets
-    WriteToSheets(
-        "Repo_Maps",
-        repo_name,
-        df,
+    df["mermaid"] = df.apply(
+        lambda row: get_mermaid_from_row(row, apply_links=True), axis=1
     )
+    # for each resource type
+    for resource_type in df["resource_type"].unique():
+        # filter to that resource type
+        df_resource_type = df[df["resource_type"] == resource_type]
+
+        # output mermaid as a file in the data folder
+        with open(
+            os.path.join(
+                docs_dir, f"{repo_name}_data_pipelines_mermaid_{resource_type}.md"
+            ),
+            "w",
+        ) as f:
+            f.write("# Mermaid\n")
+            f.write("\n")
+            f.write("```mermaid\n")
+            f.write("graph LR;\n")
+            f.write("\n")
+
+            for script in df_resource_type["script_name"].unique():
+                for row in df_resource_type[
+                    df_resource_type["script_name"] == script
+                ].iterrows():
+                    f.write(f'  {row[1]["mermaid"]}')
+                    f.write("\n")
+                f.write("\n")
+
+            f.write("```\n")
+
+    return df
 
 
 # %%
