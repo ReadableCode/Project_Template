@@ -22,6 +22,8 @@ from utils.config_utils import (
     data_dir,
 )
 
+from utils.display_tools import pprint_df, pprint_dict, pprint_ls
+
 
 # %%
 ## Variables ##
@@ -101,7 +103,13 @@ def strip_characters_for_mermaid(string):
     return string.replace(" ", "_").replace("(", "_").replace(")", "_")
 
 
-def get_mermaid_from_row(row, apply_links=True):
+def get_mermaid_chunks(row):
+
+    # if row["script_path"] is a float
+    if isinstance(row["script_path"], float):
+
+        print(f"issue with row: {row}")
+
     # Add values to the "mermaid" column based on the value of "input_output" column
     left = ""
     right = ""
@@ -110,7 +118,7 @@ def get_mermaid_from_row(row, apply_links=True):
         if row["resource_type"] == "google_sheet":
             left = f'{row["script_path"]}'
             left_link = get_git_link(row["script_path"])
-            right = f'{row["spreadsheet_name"]}/{row["sheet_name"]}'
+            right = f'{row["spreadsheet_name"]}'
             right_link = get_sheet_link(row["spreadsheet_id"])
         elif row["resource_type"] == "domo_table":
             left = f'{row["script_path"]}'
@@ -124,7 +132,7 @@ def get_mermaid_from_row(row, apply_links=True):
             right_link = ""
     elif row["input_output"] == "input":
         if row["resource_type"] == "google_sheet":
-            left = f'{row["spreadsheet_name"]}/{row["sheet_name"]}'
+            left = f'{row["spreadsheet_name"]}'
             left_link = get_sheet_link(row["spreadsheet_id"])
             right = f'{row["script_path"]}'
             right_link = get_git_link(row["script_path"])
@@ -147,28 +155,12 @@ def get_mermaid_from_row(row, apply_links=True):
     left = strip_characters_for_mermaid(left)
     right = strip_characters_for_mermaid(right)
 
-    if apply_links:
-        if left_link != "":
-            left = f"{left}[<a href='{left_link}'>{left}</a>]"
-        if right_link != "":
-            right = f"{right}[<a href='{right_link}'>{right}</a>];"
+    if left_link != "":
+        left = f"<a href='{left_link}'>{left}</a>"
+    if right_link != "":
+        right = f"<a href='{right_link}'>{right}</a>"
 
-    return f"{left} --> {right}"
-
-
-# example log use:
-# log_data_pipeline(
-#     script_path=os.path.join(grandparent_dir, "src", "parse_repo.py"),
-#     function_name="parse_repo",
-#     input_output="output",
-#     resource_type="google_sheet",
-#     spreadsheet_id="18UojhPgDwIHJECmeNYAx-qao4acsRhy4zwa2Pn0IfYU",
-#     spreadsheet_name="Repo_Maps",
-#     sheet_name=repo_name,
-#     domo_table_name="",
-#     domo_table_id="",
-#     file_path="",
-# )
+    return left, right
 
 
 def log_data_pipeline(
@@ -210,7 +202,19 @@ def log_data_pipeline(
         )
 
 
-def data_pipe_outputs():
+def increment_letter(letter):
+    if letter == "":  # handle empty input
+        return "A"
+    elif letter[-1] != "Z":
+        return letter[:-1] + chr(ord(letter[-1]) + 1)
+    else:
+        return increment_letter(letter[:-1]) + "A"
+
+
+import re
+
+
+def data_pipe_outputs_compacted_mermaid():
     # read in csv
     df = pandas.read_csv(os.path.join(data_dir, "data_pipelines.csv"))
 
@@ -223,94 +227,70 @@ def data_pipe_outputs():
             "resource_type",
             "spreadsheet_id",
             "spreadsheet_name",
-            "sheet_name",
             "domo_table_name",
             "domo_table_id",
             "file_path",
         ]
     )
 
-    df["mermaid"] = df.apply(
-        lambda row: get_mermaid_from_row(row, apply_links=False), axis=1
-    )
-
-    ## filter out for size constraints
-    # filter out where file path contains  - Active Roster -
-    df = df[~df["mermaid"].str.contains("-_Active_Roster_-")]
-
-    df["spreadsheet_name"].fillna("", inplace=True)
-    # filter out ^.._* files unless they are ^NJ_* on spreadsheet_name
-    df = df[
-        ~df["spreadsheet_name"].str.contains("^[A-Z]{2} ")
-        | df["spreadsheet_name"].str.startswith("NJ ")
-    ]
-
-    df["sheet_name"].fillna("", inplace=True)
-    # filter out ^.._* files unless they are ^NJ_* on sheet_name
-    df = df[
-        ~df["sheet_name"].str.contains("^[A-Z]{2} ")
-        | df["sheet_name"].str.startswith("NJ ")
-    ]
-
-    df["file_name"].fillna("", inplace=True)
-    # filter out ^.._* files unless they are ^NJ_* on file_name
-    df = df[
-        ~df["file_name"].str.contains("^[A-Z]{2}_")
-        | df["file_name"].str.startswith("NJ_")
-    ]
-
     # sort
-    df = df.sort_values(by=["script_path", "input_output", "resource_type"])
+    df = df.sort_values(
+        by=["spreadsheet_name", "script_path", "input_output", "resource_type"]
+    )  # temp added spreadseheet_name
+
+    running_mermaid_letter = "A"
+    dict_defined_mermaid_chunks = (
+        {}
+    )  # "A[<a href='https://docs.google.com/spreadsheets/d/15YOVAJosH_fM3zODhgVe0DNux-3vZYZ0KQf7SZvshjE/edit#gid=764617962'>Mock/Live Plan Inputs</a>]": "A"
+    ls_lines_to_add_to_mermaid = []
+    for row in df.iterrows():
+
+        left, right = get_mermaid_chunks(row[1])
+
+        # if left or right contains "Active Roster" then skip
+        if "Active_Roster" in left or "Active_Roster" in right:
+            continue
+
+        if left in dict_defined_mermaid_chunks.keys():
+            left = dict_defined_mermaid_chunks[left]
+        else:
+            dict_defined_mermaid_chunks[left] = running_mermaid_letter
+            left = running_mermaid_letter
+            running_mermaid_letter = increment_letter(running_mermaid_letter)
+
+        if right in dict_defined_mermaid_chunks.keys():
+            right = dict_defined_mermaid_chunks[right]
+        else:
+            dict_defined_mermaid_chunks[right] = running_mermaid_letter
+            right = running_mermaid_letter
+            running_mermaid_letter = increment_letter(running_mermaid_letter)
+
+        if f"{left} --> {right}" not in ls_lines_to_add_to_mermaid:
+            ls_lines_to_add_to_mermaid.append(f"{left} --> {right}")
 
     # output mermaid as a file in the data folder
     with open(
         os.path.join(docs_dir, f"{repo_name}_data_pipelines_mermaid.md"),
         "w",
     ) as f:
+        # setup mermaid file
         f.write("# Mermaid\n")
         f.write("\n")
         f.write("```mermaid\n")
         f.write("graph LR;\n")
         f.write("\n")
 
-        for script in df["script_name"].unique():
-            for row in df[df["script_name"] == script].iterrows():
-                f.write(f'  {row[1]["mermaid"]}')
-                f.write("\n")
-            f.write("\n")
+        # add each entry from the dictionary
+        for key, value in dict_defined_mermaid_chunks.items():
+            f.write(f"  {value}[{key}]\n")
+        f.write("\n")
 
+        # add each line from the list
+        for line in ls_lines_to_add_to_mermaid:
+            f.write(f"  {line}\n")
+
+        # end mermaid file
         f.write("```\n")
-
-    df["mermaid"] = df.apply(
-        lambda row: get_mermaid_from_row(row, apply_links=True), axis=1
-    )
-    # for each resource type
-    for resource_type in df["resource_type"].unique():
-        # filter to that resource type
-        df_resource_type = df[df["resource_type"] == resource_type]
-
-        # output mermaid as a file in the data folder
-        with open(
-            os.path.join(
-                docs_dir, f"{repo_name}_data_pipelines_mermaid_{resource_type}.md"
-            ),
-            "w",
-        ) as f:
-            f.write("# Mermaid\n")
-            f.write("\n")
-            f.write("```mermaid\n")
-            f.write("graph LR;\n")
-            f.write("\n")
-
-            for script in df_resource_type["script_name"].unique():
-                for row in df_resource_type[
-                    df_resource_type["script_name"] == script
-                ].iterrows():
-                    f.write(f'  {row[1]["mermaid"]}')
-                    f.write("\n")
-                f.write("\n")
-
-            f.write("```\n")
 
     return df
 
@@ -320,7 +300,7 @@ def data_pipe_outputs():
 
 if __name__ == "__main__":
 
-    data_pipe_outputs()
+    data_pipe_outputs_compacted_mermaid()
 
 
 # %%

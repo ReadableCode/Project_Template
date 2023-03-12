@@ -294,6 +294,45 @@ def get_book_sheet(bookName, sheetName):
         return Worksheet
 
 
+def get_book_sheet_df(
+    bookName,
+    sheetName,
+    start=None,
+    end=None,
+    index_column=None,
+    value_render="FORMATTED_VALUE",
+    numerize=True,
+    script_path="",
+    function_name="",
+):
+
+    workbook = get_book(bookName)
+    worksheet = get_book_sheet(bookName, sheetName)
+
+    df = worksheet.get_as_df(
+        start=start,
+        end=end,
+        index_column=index_column,
+        value_render=value_render,
+        numerize=numerize,
+    )
+
+    log_data_pipeline(
+        script_path=script_path,
+        function_name=function_name,
+        input_output="input",
+        resource_type="google_sheet",
+        spreadsheet_id=workbook.id,
+        spreadsheet_name=bookName,
+        sheet_name=sheetName,
+        domo_table_name="",
+        domo_table_id="",
+        file_path="",
+    )
+
+    return df
+
+
 def get_book_sheet_from_id_name(id, sheetName):
     """
     This function will return a Worksheet object from a google sheet using the spreadsheet id and the sheet name, will return a cached connection if it exists
@@ -313,6 +352,45 @@ def get_book_sheet_from_id_name(id, sheetName):
         dict_connected_sheets[f"{id} : {sheetName}"] = Worksheet
         print_logger(f"Opening new connection to {id} : {sheetName}")
         return Worksheet
+
+
+def get_book_sheet_df_from_id_name(
+    id,
+    sheetName,
+    start=None,
+    end=None,
+    index_column=None,
+    value_render="FORMATTED_VALUE",
+    numerize=True,
+    script_path="",
+    function_name="",
+):
+
+    workbook = get_book_from_id(id)
+    worksheet = get_book_sheet_from_id_name(id, sheetName)
+
+    df = worksheet.get_as_df(
+        start=start,
+        end=end,
+        index_column=index_column,
+        value_render=value_render,
+        numerize=numerize,
+    )
+
+    log_data_pipeline(
+        script_path=script_path,
+        function_name=function_name,
+        input_output="input",
+        resource_type="google_sheet",
+        spreadsheet_id=id,
+        spreadsheet_name=workbook.title,
+        sheet_name=sheetName,
+        domo_table_name="",
+        domo_table_id="",
+        file_path="",
+    )
+
+    return df
 
 
 def WriteToSheets(
