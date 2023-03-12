@@ -130,6 +130,16 @@ def get_mermaid_chunks(row):
             left_link = get_git_link(row["script_path"])
             right = f'{row["file_name"]}'
             right_link = ""
+        elif row["resource_type"] == "database_table":
+            left = f'{row["script_path"]}'
+            left_link = get_git_link(row["script_path"])
+            right = f'{row["database_table_path"]}'
+            right_link = ""
+        elif row["resource_type"] == "s3_bucket":
+            left = f'{row["script_path"]}'
+            left_link = get_git_link(row["script_path"])
+            right = f'{row["s3_bucket"]}'
+            right_link = ""
     elif row["input_output"] == "input":
         if row["resource_type"] == "google_sheet":
             left = f'{row["spreadsheet_name"]}'
@@ -143,6 +153,16 @@ def get_mermaid_chunks(row):
             right_link = get_git_link(row["script_path"])
         elif row["resource_type"] == "file":
             left = f'{row["file_name"]}'
+            left_link = ""
+            right = f'{row["script_path"]}'
+            right_link = get_git_link(row["script_path"])
+        elif row["resource_type"] == "database_table":
+            left = f'{row["database_table_path"]}'
+            left_link = ""
+            right = f'{row["script_path"]}'
+            right_link = get_git_link(row["script_path"])
+        elif row["resource_type"] == "s3_bucket":
+            left = f'{row["s3_bucket"]}'
             left_link = ""
             right = f'{row["script_path"]}'
             right_link = get_git_link(row["script_path"])
@@ -174,12 +194,14 @@ def log_data_pipeline(
     domo_table_name="",
     domo_table_id="",
     file_path="",
+    database_table_path="",
+    s3_bucket="",
 ):
     # if file does not exist write header
     if not os.path.isfile(os.path.join(data_dir, "data_pipelines.csv")):
         with open(os.path.join(data_dir, "data_pipelines.csv"), "w") as f:
             f.write(
-                "datestamp,script_path,script_name,function_name,input_output,resource_type,spreadsheet_id,spreadsheet_name,sheet_name,domo_table_name,domo_table_id,file_path,file_name,sheet_link,script_link,domo_link,mermaid\n"
+                "datestamp,script_path,script_name,function_name,input_output,resource_type,spreadsheet_id,spreadsheet_name,sheet_name,domo_table_name,domo_table_id,file_path,file_name,sheet_link,script_link,domo_link,database_table_path,s3_bucket\n"
             )
 
     if script_path == "":
@@ -198,7 +220,7 @@ def log_data_pipeline(
 
     with open(os.path.join(data_dir, "data_pipelines.csv"), "a") as f:
         f.write(
-            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{script_path},{script_name},{function_name},{input_output},{resource_type},{spreadsheet_id},{spreadsheet_name},{sheet_name},{domo_table_name},{domo_table_id},{file_path},{file_name},{sheet_link},{script_link},{domo_link},\n"
+            f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')},{script_path},{script_name},{function_name},{input_output},{resource_type},{spreadsheet_id},{spreadsheet_name},{sheet_name},{domo_table_name},{domo_table_id},{file_path},{file_name},{sheet_link},{script_link},{domo_link},{database_table_path},{s3_bucket}\n"
         )
 
 
@@ -209,9 +231,6 @@ def increment_letter(letter):
         return letter[:-1] + chr(ord(letter[-1]) + 1)
     else:
         return increment_letter(letter[:-1]) + "A"
-
-
-import re
 
 
 def data_pipe_outputs_compacted_mermaid():
@@ -230,13 +249,13 @@ def data_pipe_outputs_compacted_mermaid():
             "domo_table_name",
             "domo_table_id",
             "file_path",
+            "database_table_path",
+            "s3_bucket",
         ]
     )
 
     # sort
-    df = df.sort_values(
-        by=["spreadsheet_name", "script_path", "input_output", "resource_type"]
-    )  # temp added spreadseheet_name
+    df = df.sort_values(by=["script_path", "input_output", "resource_type"])
 
     running_mermaid_letter = "A"
     dict_defined_mermaid_chunks = (
